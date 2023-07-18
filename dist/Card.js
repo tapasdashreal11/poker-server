@@ -63,7 +63,7 @@ for (let i = 0; i < 5; i++) {
         console.log(`Drawn card: ${Rank[card.rank]} of ${Suit[card.suit]}`);
     }
     else {
-        console.log('No more cards in the deck.');
+        console.log("No more cards in the deck.");
         break;
     }
 }

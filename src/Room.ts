@@ -5,8 +5,7 @@ player count and player names. */
 interface Player {
   id: string;
   name: string;
-};
-
+}
 
 class Room {
   public roomId: string;
@@ -14,32 +13,35 @@ class Room {
 
   constructor(id: string) {
     this.players = new Map<string, Player>();
-    this.roomId = id
+    this.roomId = id;
   }
 
   /**
-   * The join function adds a new player to a room if they are not already in it.
-   * @param {Socket} socket - The `socket` parameter is of type `Socket` and represents the connection
-   * between the server and the client. It is used to send and receive data between the two.
-   * @param {number} playerId - The playerId parameter is a number that represents the unique
-   * identifier of the player.
-   * @param {string} playerName - The `playerName` parameter is a string that represents the name of
-   * the player who wants to join the room.
+   * The join function adds a new player to a room and emits a "user joined" event to all other players
+   * in the room.
+   * @param {Socket} socket - The `socket` parameter is an instance of the `Socket` class, which
+   * represents a connection between the server and a client. It allows for bidirectional communication
+   * between the server and the client.
+   * @param {string} roomId - The `roomId` parameter is a string that represents the unique identifier
+   * of the room that the player wants to join.
+   * @param {string} [playerId=hello] - The `playerId` parameter is a string that represents the unique
+   * identifier or name of the player joining the room. It is an optional parameter with a default
+   * value of "hello".
    */
-  join(socket: Socket, roomId: string, playerName: string = "hello"): void {
+  join(socket: Socket, roomId: string, playerId: string = "hello"): void {
     if (this.players.has(roomId)) {
-      console.log(`Player ${playerName} is already in the room.`);
+      console.log(`Player ${playerId} is already in the room: ${roomId}`);
     } else {
       const newPlayer: Player = {
         id: roomId,
-        name: playerName,
+        name: playerId,
       };
-      socket.join(roomId)
+      socket.join(roomId);
       this.players.set(roomId, newPlayer);
-      console.log(`Player ${playerName} has joined the room.`);
+      socket.to(roomId).emit("user joined", { roomId, playerId });
+      console.log(`Player ${playerId} has joined the room: ${roomId} `);
     }
   }
-
 
   /**
    * The `leave` function removes a player from a room and logs a message indicating that the player
@@ -47,12 +49,14 @@ class Room {
    * @param {number} playerId - The `playerId` parameter is a number that represents the unique
    * identifier of a player.
    */
-  leave(roomId: string): void {
+  leave(socket: Socket, roomId: string, playerId: string): void {
     if (this.players.has(roomId)) {
       const player = this.players.get(roomId);
       if (player) {
         console.log(`Player ${player.name} has left the room.`);
+        socket.leave(roomId);
         this.players.delete(roomId);
+        socket.to(roomId).emit("user left", socket.id);
       }
     } else {
       console.log(`Player with ID ${roomId} is not in the room.`);
@@ -78,7 +82,7 @@ class Room {
   }
 }
 
-export default Room
+export default Room;
 // Example usage:
 // const pokerRoom = new Room();
 
